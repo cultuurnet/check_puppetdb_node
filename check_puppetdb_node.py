@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import unicode_literals
+from distutils.version import StrictVersion
 
 import sys
 import optparse
@@ -57,6 +58,9 @@ erroneous state and a CRITICAL will be returned.
         parser.error('Must provide a hostname, see --help for instructions')
     return options
 
+def get_version(puppetdb):
+    version = puppetdb.current_version()
+    return version
 
 def get_node(hostname, puppetdb):
     try:
@@ -69,8 +73,13 @@ def get_node(hostname, puppetdb):
 
 
 def node_status(hostname, puppetdb):
+    version = get_version(puppetdb)
+    if StrictVersion(version) < StrictVersion('3.0.0'):
+        report_query = '["=","latest-report?",true]'
+    else:
+        report_query = '["=","latest_report?",true]'
     latest_events = puppetdb._query('event-counts',
-                                    query='["=","latest-report?",true]',
+                                    query=report_query,
                                     summarize_by='certname')
     status = [s for s in latest_events if s['subject']['title'] == hostname]
 
